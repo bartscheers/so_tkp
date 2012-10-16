@@ -9,16 +9,22 @@ Schema
 assoccatsource
 ==============
 
-This table stores the associations between extracted sources and cataloged sources (i.e. VLSS, WENSSm, WENSSp, and NVSS sources). 
+This table stores the associations between extracted sources and cataloged
+sources (i.e. VLSS, WENSSm, WENSSp, and NVSS sources).
 
-For every association pair the association parameters, distance_arcsec, r and loglr are calculated as well. Only source pairs that fullfil the criterion of an association (r < r_lim) are accepted and appended to this table. r_lim may be specified in tkp.cfg, or otherwise defaults to 3.717, corresponding to missing 10^{-3} counterparts (see Scheers's thesis, section 3.2.3)
+For every association pair the association parameters, distance_arcsec, r and
+loglr are calculated as well. Only source pairs that fullfil the criterion of
+an association (:math:`r < r_{lim}`) are accepted and appended to this table. r_lim may
+be specified in tkp.cfg, or otherwise defaults to 3.717, corresponding to
+missing :math:`10^{-3}` counterparts (see Scheers's thesis, section 3.2.3)
 
 
 **xrtsrc**
    This refers to the xtrsrcid of the extractedsource
 
 **catsrc**
-   This is the id of the catalogedsource that could be associated to the extractedsource as its counterpart
+   This is the id of the catalogedsource that could be associated to the
+   extractedsource as its counterpart
 
 **type**
    Type of the association. See under assocxtrsource for a description
@@ -27,10 +33,13 @@ For every association pair the association parameters, distance_arcsec, r and lo
    The distance in arcsec between the associated sources
 
 **r**
-   The dimensionless distance (De Ruiter radius) between the associated sources. It is determined as the positional differences weighted by the errors (Scheers thesis ch3).
+    The dimensionless distance (De Ruiter radius) between the associated
+    sources. It is determined as the positional differences weighted by the errors
+    (Scheers thesis ch3).
 
 **loglr**
-   The logarithm of the likelihood ratio of the associated sources (Scheers thesis ch3).
+   The logarithm of the likelihood ratio of the associated sources (Scheers
+   thesis ch3).
 
 
 assocxtrsource
@@ -39,67 +48,98 @@ assocxtrsource
 This table stores the associations between extracted sources and the running catalog.
 
 **runcat**
-   refers to the runcatid in runningcatalog.  It is the "base" id of a series of polarized spectral lightcurve datapoints.
+   Reference to the runcatid in runningcatalog.  It is the "base" id of a
+   series of polarized spectral lightcurve datapoints.
 
-**xtrsrc** 
-   This is the id of the extracted source that could be associated to runningcatalog source.  Together, the runcat_id and the xtrsrc form a unique pair.
+**xtrsrc**
+   This is the id of the extracted source that could be associated to
+   runningcatalog source.  Together, the runcat_id and the xtrsrc form a
+   unique pair.
 
 **type**
-    Type of association.  x-y, where x is the number of runningcatalog sources, and y the number of extractedsources
-    1. 1-1
-    2. 1-n
-    3. n-1
-    4. n-m
-    5. 0-1
+    Type of association.  x-to-y, where x is the number of runningcatalog
+    sources, and y the number of extractedsources.
+
+        1. 1-to-1
+        2. 1-to-n
+        3. n-to-1
+        4. n-to-m
+        5. 0-to-1
+
+    See the documentation on :ref:`source association <database_assoc>` for
+    details.
 
 **distance_arcsec**
    The distance in arcsec between the associated sources.
 
 **r**
-   The dimensionless distance (De Ruiter radius) between the associated sources. It is determined as the positional differences weighted by the errors (Scheers thesis ch3).
+   The dimensionless distance (De Ruiter radius) between the associated
+   sources. It is determined as the positional differences weighted by the
+   errors (Scheers thesis ch3).
 
-**loglr**      
-   The logarithm of the likelihood ratio of the associated sources (Scheers thesis ch3).
+**loglr**
+   The logarithm of the likelihood ratio of the associated sources (Scheers
+   thesis ch3).
 
 
 catalogedsource
 ===============
 
-This table contains the sources from renown surveys/catalogues, VLSS, WENSS and NVSS. The original data (all columns) are downloaded from the CDS Vizier websites (`VLSS <http://cdsarc.u-strasbg.fr/viz-bin/VizieR?-source=VIII/79>`_, `WENSS <http://cdsarc.u-strasbg.fr/viz-bin/VizieR?-source=VIII/62>`_ and `NVSS <http://cdsarc.u-strasbg.fr/viz-bin/VizieR?-source=VIII/65>`_) The catalogues also contains the exoplanets, of which the entries were provided by Matthias Griessmeier. 
+This table contains the sources from renown surveys/catalogues, VLSS, WENSS
+and NVSS. The original data (all columns) are downloaded from the CDS Vizier
+websites (`VLSS <http://cdsarc.u-strasbg.fr/viz-bin/VizieR?-source=VIII/79>`_,
+`WENSS <http://cdsarc.u-strasbg.fr/viz-bin/VizieR?-source=VIII/62>`_ and `NVSS
+<http://cdsarc.u-strasbg.fr/viz-bin/VizieR?-source=VIII/65>`_) The catalogues
+also contains the exoplanets, of which the entries were provided by Matthias
+Griessmeier.
 
-This table will be pre-loaded in the database, in order to have it available all the time. As opposed to the runningcatalog, the catalogedsources table is static and fixed and won't change during runs.
+This table will be pre-loaded in the database, in order to have it available
+all the time. As opposed to the runningcatalog, the catalogedsources table is
+static and fixed and won't change during runs.
 
 
 **id**
     Every inserted catalog source gets a unique id, generated by the database.
-    
-**catalog** 
+
+**catalog**
     The reference id to the catalog from which this source originates from.
-     
+
 **orig_catsrcid**
     The original id of the source as reported in the catalog
 
 **catsrcname**
     The original name of the source as reported in the catalog
-    
+
 **tau**
     The integration time. Defaults to NULL.
 
 **band**
-    The reference id to the frequencyband at which this survey was carried out. 
+    The reference id to the frequencyband at which this survey was carried out.
 
 **stokes**
-    The Stokes parameter. Four possible values 1 - I, 2 - Q, 3 - U, 4 - V. (Currently the external catalogues only report the Stokes I values).
+    The Stokes parameter. Four possible values:
+
+        1. I
+        2. Q
+        3. U
+        4. V
+
+    Currently, external catalogues report only Stokes I values.
 
 **freq_eff**
-    The effective frequency (in Hz) of the survey, as reported 
+    The effective frequency (in Hz) of the survey, as reported in the
+    catalogue.
 
 **zone**
-    The zone id in which the source declination resides, calculated by the database.  The sphere is devided into zones of equal width: currently fixed to 1 degree, and the zone is effectively the truncated declination. (decl=31.3 => zone=31, decl=31.9 => zone=31). This column is primarly for speeding up source look-up queries.
-    
+    The zone id in which the source declination resides, calculated by the
+    database.  The sphere is devided into zones of equal width: currently
+    fixed to 1 degree, and the zone is effectively the truncated declination.
+    (decl=31.3 => zone=31, decl=31.9 => zone=31). This column is primarly for
+    speeding up source look-up queries.
+
 **ra**
     The right ascension (RA) of the source in J2000 degrees.
-    
+
 **decl**
     The declination (decl) of the source in J2000 degrees.
 
@@ -110,65 +150,74 @@ This table will be pre-loaded in the database, in order to have it available all
     The 1-sigma error of the source in decl as measured on the sky, in arcsec.
 
 **x**
-    The x-Cartesian coordinate of the source, generated by the database from ra, decl: COS(decl) * COS(ra)
-                    .
+    The x-Cartesian coordinate of the source, generated by the database from
+    ra, decl: :math:`\cos(decl) \times \cos(ra)`.
+
 **y**
-    The y-Cartesian coordinate of the source, generated by the database from ra, decl: COS(decl) * SIN(ra)
-    
+    The y-Cartesian coordinate of the source, generated by the database from
+    ra, decl: :math:`\cos(decl) \times \sin(ra)`.
+
 **z**
-    The z-Cartesian coordinate of the source, generated by the database from ra, decl: SIN(decl)
-    
+    The z-Cartesian coordinate of the source, generated by the database from
+    ra, decl: :math:`\sin(decl)`.
+
 **margin**
-    Not used, defaults to 0. 
+    Not used, defaults to 0.
 
 **det_sigma**
-    The detection level of the source, which none of the current catalogs provides, and defaults to 0.
+    The detection level of the source, which none of the current catalogs
+    provides, and defaults to 0.
 
 **src_type**
-    Only the WENSS catalog reports the source type: M for a multi-component source, C for a subcomponent of the parent M, S for a single source and E for an extended source. Currently, we associate extracted sources with all source types.
+    Only the WENSS catalog reports the source type: M for a multi-component
+    source, C for a subcomponent of the parent M, S for a single source and E
+    for an extended source. Currently, we associate extracted sources with all
+    source types.
 
 **fit_probl**
     WENSS and NVSS report occasional fit problems.
 
 **PA**
-    Position angle of fitted major axis, in degrees
+    Position angle of fitted major axis, in degrees.
 
 **PA_err**
-    Error on position angle of fitted major axis, in degrees
+    Error on position angle of fitted major axis, in degrees.
 
 **major**
-    Major axis of deconvolved component size, in arcsec
+    Major axis of deconvolved component size, in arcsec.
 
 **major_err**
-    Mean error on major axis, in arcsec
+    Mean error on major axis, in arcsec.
 
 **minor**
-    Minor axis of deconvolved component size, in arcsec
+    Minor axis of deconvolved component size, in arcsec.
 
 **minor_err**
-    Mean error on minor axis, in arcsec
+    Mean error on minor axis, in arcsec.
 
 **avg_f_peak**
-    Peak flux (in Jy) of source. It is prefixed by avg, since its value is based on a number of observations, as will also be the case when we add LOFAR surveys (MSSS) to this table.
+    Peak flux (in Jy) of source. It is prefixed by avg, since its value is
+    based on a number of observations, as will also be the case when we add
+    LOFAR surveys (MSSS) to this table.
 
 **avg_f_peak_err**
-    Mean error on peak flux of source, in Jy
+    Mean error on peak flux of source, in Jy.
 
 **avg_f_int**
-    Integrated flux of source, in Jy
+    Integrated flux of source, in Jy.
 
 **avg_f_int_err**
-    Mean error on integrated flux of source, in Jy
+    Mean error on integrated flux of source, in Jy.
 
 **frame**
-    Some catalogs have a reference to a frame/fits image/jpg postage stamp for the field the source was detected in.
-
+    Some catalogs have a reference to a frame/fits image/jpg postage stamp for
+    the field the source was detected in.
 
 catalog
 =======
 
-This table stores the information about the catalogs that are loaded into the pipeline database. 
-
+This table stores the information about the catalogs that are loaded into the
+pipeline database.
 
 **id**
     Every catalog gets a unique id, generated by the database.
