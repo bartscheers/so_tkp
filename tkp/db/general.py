@@ -71,8 +71,8 @@ DELETE
                                  AND x0.decl + %(assoc_theta)s
                  AND x1.ra BETWEEN x0.ra - alpha(%(assoc_theta)s, x0.decl)
                                AND x0.ra + alpha(%(assoc_theta)s, x0.decl)
-                 AND SQRT(  (x0.ra * COS(RADIANS(x0.decl)) - x1.ra * COS(RADIANS(x1.decl)))
-                          * (x0.ra * COS(RADIANS(x0.decl)) - x1.ra * COS(RADIANS(x1.decl)))
+                 AND SQRT(  (x0.ra - x1.ra) * COS(RADIANS((x0.decl + x1.decl)/2))
+                          * (x0.ra - x1.ra) * COS(RADIANS((x0.decl + x1.decl)/2))
                           / (x0.uncertainty_ew * x0.uncertainty_ew + x1.uncertainty_ew * x1.uncertainty_ew)
                          +  (x0.decl - x1.decl) * (x0.decl - x1.decl)
                           / (x0.uncertainty_ns * x0.uncertainty_ns + x1.uncertainty_ns * x1.uncertainty_ns)
