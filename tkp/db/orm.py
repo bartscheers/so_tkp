@@ -124,9 +124,11 @@ from tkp.db.associations import associate_extracted_sources
 import tkp.db
 import tkp.db.quality
 from tkp.db.database import Database
+import time
 
 
 logger = logging.getLogger(__name__)
+logdir = '/export/scratch2/bscheers/lofar/release1/performance/2013-sp4/napels/10x100000/log'
 
 
 class DBObject(object):
@@ -217,7 +219,12 @@ class DBObject(object):
             cursor = self.database.cursor
             try:
                 # Insert a default source
+                logfile = open(logdir + '/orm_id' + '.log', 'a')
+                start = time.time()
                 cursor.execute(query, values)
+                q_end = time.time() - start
+                commit_end = time.time() - start
+                logfile.write(str(-1) + "," + str(q_end) + "," + str(commit_end) + "\n")
                 if not self.database.connection.autocommit:
                     self.database.connection.commit()
                 if self.database.engine == "monetdb":
@@ -258,8 +265,13 @@ class DBObject(object):
         (with the provided keyword arguments).
         """
 
+        logfile = open(logdir + '/orm_update' + '.log', 'a')
+        start = time.time()
         self._sync_with_database()
         self._set_data(**kwargs)
+        q_end = time.time() - start
+        commit_end = time.time() - start
+        logfile.write(str(-1) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
     def _sync_with_database(self):
         """Update object attributes from the database"""

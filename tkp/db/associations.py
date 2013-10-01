@@ -4,10 +4,10 @@ deal with source association.
 """
 import logging
 import tkp.db
-
+import time
 
 logger = logging.getLogger(__name__)
-
+logdir = '/export/scratch2/bscheers/lofar/release1/performance/2013-sp4/napels/10x100000/log'
 
 def associate_extracted_sources(image_id, deRuiter_r):
     """Associate extracted sources with sources detected in the running
@@ -21,7 +21,7 @@ def associate_extracted_sources(image_id, deRuiter_r):
     ##This is used as a check that everything from the sourcefinder is sensible.
     ##Currently switched off as it's incompatible with sources about the meridian.
 #    _delete_bad_blind_extractions(conn, image_id)
-    _empty_temprunningcatalog()
+    _empty_temprunningcatalog(image_id)
     #+------------------------------------------------------+
     #| Here we select all extracted sources that have one or|
     #| more counterparts in the runningcatalog              |
@@ -35,7 +35,7 @@ def associate_extracted_sources(image_id, deRuiter_r):
     #| Here we process (flag) the many-to-many associations.|
     #+------------------------------------------------------+
     # _process_many_to_many()
-    _flag_many_to_many_tempruncat()
+    _flag_many_to_many_tempruncat(image_id)
     #+------------------------------------------------------+
     #| After this, the assocs have been reduced to many-to-1|
     #| which are treated identical as 1-to-1, and 1-to-many.|
@@ -67,10 +67,10 @@ def associate_extracted_sources(image_id, deRuiter_r):
     #| Here we process the one-to-one associations         |
     #+-----------------------------------------------------+
     # _process_1_to_1()
-    _insert_1_to_1_assoc()
-    _update_1_to_1_runcat()
-    _update_1_to_1_runcat_flux()  # update flux in existing band
-    _insert_1_to_1_runcat_flux()  # insert flux for new band
+    _insert_1_to_1_assoc(image_id)
+    _update_1_to_1_runcat(image_id)
+    _update_1_to_1_runcat_flux(image_id)  # update flux in existing band
+    _insert_1_to_1_runcat_flux(image_id)  # insert flux for new band
     #+-------------------------------------------------------+
     #| Here we take care of the extracted sources that could |
     #| not be associated with any runningcatalog source      |
@@ -87,8 +87,8 @@ def associate_extracted_sources(image_id, deRuiter_r):
     #| that is done in the transient_search recipe.          |
     #+-------------------------------------------------------+
     # TODO: Is it? -> Check
-    _empty_temprunningcatalog()
-    _delete_inactive_runcat()
+    _empty_temprunningcatalog(image_id)
+    _delete_inactive_runcat(image_id)
 
 ##############################################################################
 # Subroutines...
@@ -150,14 +150,19 @@ WHERE image = %(imgid)s
     return n_deleted
 
 
-def _empty_temprunningcatalog():
+def _empty_temprunningcatalog(image_id):
     """Initialize the temporary storage table
 
     Initialize the temporary table temprunningcatalog which contains
     the current observed sources.
     """
     query = "DELETE FROM temprunningcatalog"
+    logfile = open(logdir + '/' + _empty_temprunningcatalog.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
 
@@ -242,7 +247,12 @@ SELECT CASE WHEN s.centre_ra - alpha(s.xtr_radius, s.centre_decl) < 0 OR
    AND i.id = %(image_id)s
 """
     args = {'image_id': image_id}
+    logfile = open(logdir + '/' + _check_meridian_wrap.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(meridian_wrap_query, args, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     results = zip(*cursor.fetchall())
 
     if len(results) != 0:
@@ -728,10 +738,15 @@ INSERT INTO temprunningcatalog
         query = q_across_ra0
 
     args = {'image_id': image_id, 'deRuiter': deRuiter_r}
+    logfile = open(logdir + '/' + _insert_temprunningcatalog.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, args, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _flag_many_to_many_tempruncat():
+def _flag_many_to_many_tempruncat(image_id):
     """Select the many-to-many association pairs in temprunningcatalog.
 
     By flagging the many-to-many associations, we reduce the
@@ -800,10 +815,15 @@ UPDATE temprunningcatalog
                   AND t2.xtrsrc = temprunningcatalog.xtrsrc
               )
 """
+    logfile = open(logdir + '/' + _flag_many_to_many_tempruncat.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _insert_1_to_many_runcat():
+def _insert_1_to_many_runcat(image_id):
     """Insert the extracted sources that belong to one-to-many
     associations in the runningcatalog.
 
@@ -865,10 +885,15 @@ INSERT INTO runningcatalog
                     HAVING COUNT(*) > 1
                    )
 """
+    logfile = open(logdir + '/' + _insert_1_to_many_runcat.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _insert_1_to_many_runcat_flux():
+def _insert_1_to_many_runcat_flux(image_id):
     """Insert the fluxes of the extracted sources that belong
     to a one-to-many association in the runningcatalog.
 
@@ -917,10 +942,15 @@ INSERT INTO runningcatalog_flux
                          HAVING COUNT(*) > 1
                         )
 """
+    logfile = open(logdir + '/' + _insert_1_to_many_runcat_flux.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _insert_1_to_many_basepoint_assoc():
+def _insert_1_to_many_basepoint_assoc(image_id):
     """Insert base points for one-to-many associations
 
     Before continuing, we have to insert the 'base points' of the associations,
@@ -951,10 +981,15 @@ INSERT INTO assocxtrsource
                       HAVING COUNT(*) > 1
                      )
     """
+    logfile = open(logdir + '/' + _insert_1_to_many_basepoint_assoc.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _insert_1_to_many_assoc():
+def _insert_1_to_many_assoc(image_id):
     """Insert links into the association table between the new runcat
     entries and the old extractedsources.
     (New to New ('basepoint') links have been added earlier).
@@ -999,10 +1034,15 @@ INSERT INTO assocxtrsource
                       HAVING COUNT(*) > 1
                      )
 """
+    logfile = open(logdir + '/' + _insert_1_to_many_assoc.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _insert_1_to_many_skyrgn():
+def _insert_1_to_many_skyrgn(image_id):
     query = """\
 INSERT INTO assocskyrgn
   (runcat
@@ -1025,10 +1065,15 @@ INSERT INTO assocskyrgn
                      )
      AND asr.runcat = t.runcat
 """
+    logfile = open(logdir + '/' + _insert_1_to_many_skyrgn.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _insert_1_to_many_monitoringlist():
+def _insert_1_to_many_monitoringlist(image_id):
     """Insert one-to-many in monitoringlist
 
     In case where we have a non-user-entry source in the monitoringlist
@@ -1059,10 +1104,15 @@ INSERT INTO monitoringlist
                       HAVING COUNT(*) > 1
                      )
 """
+    logfile = open(logdir + '/' + _insert_1_to_many_monitoringlist.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _insert_1_to_many_transient():
+def _insert_1_to_many_transient(image_id):
     """Update the runcat id for the one-to-many associations,
     and delete the transient entries of the old runcat id
     (the new ones have been added earlier).
@@ -1108,10 +1158,15 @@ INSERT INTO transient
                       HAVING COUNT(*) > 1
                      )
 """
+    logfile = open(logdir + '/' + _insert_1_to_many_transient.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _delete_1_to_many_inactive_monitoringlist():
+def _delete_1_to_many_inactive_monitoringlist(image_id):
     """Delete the monitoringlist sources of the old runcat
 
     Since we replaced this runcat.id with multiple new ones, we now
@@ -1129,10 +1184,15 @@ DELETE
                  AND r.inactive = TRUE
              )
 """
+    logfile = open(logdir + '/' + _delete_1_to_many_inactive_monitoringlist.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _delete_1_to_many_inactive_assocskyrgn():
+def _delete_1_to_many_inactive_assocskyrgn(image_id):
     """Delete the assocskyrgn links of the old runcat
 
     Since we replaced this runcat.id with multiple new ones, we now
@@ -1146,10 +1206,15 @@ DELETE
                WHERE r.inactive = TRUE
              )
 """
+    logfile = open(logdir + '/' + _delete_1_to_many_inactive_assocskyrgn.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _delete_1_to_many_inactive_transient():
+def _delete_1_to_many_inactive_transient(image_id):
     """Delete the transient sources of the old runcat
 
     Since we replaced this runcat.id with multiple new ones, we now
@@ -1165,10 +1230,15 @@ DELETE
                  AND r.inactive = TRUE
              )
 """
+    logfile = open(logdir + '/' + _delete_1_to_many_inactive_transient.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _delete_1_to_many_inactive_assoc():
+def _delete_1_to_many_inactive_assoc(image_id):
     """Delete the association pairs of the old runcat from assocxtrsource
 
     NOTE: It might sound confusing, but those are not qualified
@@ -1192,10 +1262,15 @@ DELETE
                   HAVING COUNT(*) > 1
                  )
     """
+    logfile = open(logdir + '/' + _delete_1_to_many_inactive_assoc.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _delete_1_to_many_inactive_runcat_flux():
+def _delete_1_to_many_inactive_runcat_flux(image_id):
     """Flag the old runcat ids in the runningcatalog to inactive
 
     Since we replaced this runcat.id with multiple new one, we first
@@ -1212,10 +1287,15 @@ DELETE
                   HAVING COUNT(*) > 1
                  )
 """
+    logfile = open(logdir + '/' + _delete_1_to_many_inactive_runcat_flux.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _flag_1_to_many_inactive_runcat():
+def _flag_1_to_many_inactive_runcat(image_id):
     """Flag the old runcat ids in the runningcatalog to inactive
 
     We do not delete them yet, because we need them later on.
@@ -1232,10 +1312,15 @@ UPDATE runningcatalog
               HAVING COUNT(*) > 1
              )
 """
+    logfile = open(logdir + '/' + _flag_1_to_many_inactive_runcat.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _flag_1_to_many_inactive_tempruncat():
+def _flag_1_to_many_inactive_tempruncat(image_id):
     """Delete the one-to-many associations from temprunningcatalog,
     and delete the inactive rows from runningcatalog.
 
@@ -1260,10 +1345,15 @@ UPDATE temprunningcatalog
                   HAVING COUNT(*) > 1
                  )
 """
+    logfile = open(logdir + '/' + _flag_1_to_many_inactive_tempruncat.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _insert_1_to_1_assoc():
+def _insert_1_to_1_assoc(image_id):
     """
     Insert remaining associations from temprunningcatalog into assocxtrsource.
     """
@@ -1287,10 +1377,15 @@ INSERT INTO assocxtrsource
      AND t.inactive = FALSE
      AND t.xtrsrc = x.id
 """
+    logfile = open(logdir + '/' + _insert_1_to_1_assoc.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
-def _update_1_to_1_runcat():
+def _update_1_to_1_runcat(image_id):
     """Update the running catalog with the values in temprunningcatalog"""
     query = """\
         UPDATE runningcatalog
@@ -1375,9 +1470,14 @@ def _update_1_to_1_runcat():
                           AND temprunningcatalog.inactive = FALSE
                       )
 """
+    logfile = open(logdir + '/' + _update_1_to_1_runcat.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
-def _update_1_to_1_runcat_flux():
+def _update_1_to_1_runcat_flux(image_id):
     """Updates the fluxes in runningcatalog_flux of an existing band
     for an existing runcat source.
 
@@ -1475,13 +1575,18 @@ UPDATE runningcatalog_flux
                   AND temprunningcatalog.inactive = FALSE
               )
 """
+    logfile = open(logdir + '/' + _update_1_to_1_runcat_flux.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     cnt = cursor.rowcount
     if cnt > 0:
         logger.info("Updated flux for %s sources" % cnt)
 
 
-def _insert_1_to_1_runcat_flux():
+def _insert_1_to_1_runcat_flux(image_id):
     """Insert the fluxes in runningcatalog_flux of a new band
     for an existing runcat source.
 
@@ -1537,7 +1642,12 @@ INSERT INTO runningcatalog_flux
                         AND tr.inactive = FALSE
                     )
 """
+    logfile = open(logdir + '/' + _insert_1_to_1_runcat_flux.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     cnt = cursor.rowcount
     if cnt > 0:
         logger.info("Inserted new fluxes for %s sources" % cnt)
@@ -1628,7 +1738,12 @@ INSERT INTO runningcatalog
          ON t0.xtrsrc = trc0.xtrsrc
    WHERE trc0.xtrsrc IS NULL
 """
+    logfile = open(logdir + '/' + _insert_new_runcat.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, (image_id,), True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     ins = cursor.rowcount
     if ins > 0:
         logger.info("Added %s new sources to runningcatalog" % ins)
@@ -1693,7 +1808,12 @@ INSERT INTO runningcatalog_flux
                          WHERE trc1.xtrsrc IS NULL
                       )
 """
+    logfile = open(logdir + '/' + _insert_new_runcat_flux.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, {'image_id': image_id}, True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
 def _insert_new_runcat_skyrgn_assocs(image_id):
@@ -1742,7 +1862,12 @@ SELECT t0.runcat
        ON t0.xtrsrc = trc.xtrsrc
 WHERE trc.xtrsrc IS NULL
 """
+    logfile = open(logdir + '/' + _insert_new_runcat_skyrgn_assocs.__name__ + '_a.log', 'a')
+    start = time.time()
     tkp.db.execute(assocskyrgn_parent_qry, {'img_id':image_id}, True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
     #Now search all the other skyregions *in same dataset* to determine matches:
     assocskyrgn_others_qry = """\
@@ -1785,7 +1910,12 @@ SELECT t1.runcat as runcatid
                                     ) / 2)
                ) < sky.xtr_radius
 """
+    logfile = open(logdir + '/' + _insert_new_runcat_skyrgn_assocs.__name__ + '_b.log', 'a')
+    start = time.time()
     tkp.db.execute(assocskyrgn_others_qry, {'img_id':image_id}, True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
 def _insert_new_assoc(image_id):
@@ -1833,7 +1963,12 @@ INSERT INTO assocxtrsource
                          WHERE trc1.xtrsrc IS NULL
                       )
 """
+    logfile = open(logdir + '/' + _insert_new_assoc.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, {'image_id':image_id}, True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
 
 
 def _insert_new_monitoringlist(image_id):
@@ -1898,7 +2033,12 @@ INSERT INTO monitoringlist
      AND r0.id = tstamps.ts_runcat
      AND i0.taustart_ts > tstamps.ts_min
 """
+    logfile = open(logdir + '/' + _insert_new_monitoringlist.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, (image_id, image_id), commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     ins = cursor.rowcount
     if ins > 0:
         logger.info("Added %s new sources to monitoringlist table" % (ins,))
@@ -1962,13 +2102,18 @@ INSERT INTO transient
      AND r0.id = tstamps.ts_runcat
      AND i0.taustart_ts > tstamps.ts_min
 """
+    logfile = open(logdir + '/' + _insert_new_transient.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, (image_id, image_id), commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     ins = cursor.rowcount
     if ins > 0:
         logger.info("Added %s new sources to transient table" % (ins,))
 
 
-def _delete_inactive_runcat():
+def _delete_inactive_runcat(image_id):
     """Delete the one-to-many associations from temprunningcatalog,
     and delete the inactive rows from runningcatalog.
 
@@ -1981,4 +2126,9 @@ DELETE
   FROM runningcatalog
  WHERE inactive = TRUE
 """
+    logfile = open(logdir + '/' + _delete_inactive_runcat.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")

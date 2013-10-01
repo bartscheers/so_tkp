@@ -4,9 +4,10 @@ and return data in an easy to use format such as dictionaries.
 """
 import logging
 import tkp.db
-
+import time
 
 logger = logging.getLogger(__name__)
+logdir = '/export/scratch2/bscheers/lofar/release1/performance/2013-sp3/napels/10x10000/log'
 
 
 def columns_from_table(table, keywords=None, alias=None, where=None,
@@ -73,9 +74,14 @@ def columns_from_table(table, keywords=None, alias=None, where=None,
     if order:
         query += "ORDER BY " + order
 
+    logfile = open(logdir + '/' + columns_from_table.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, where_args)
+    q_end = time.time() - start
     results = cursor.fetchall()
     results_dict = convert_db_rows_to_dicts(results, cursor.description, alias)
+    convert_end = time.time() - start
+    logfile.write(str(-1) + "," + str(q_end) + "," + str(convert_end) + "\n")
     return results_dict
 
 
@@ -126,4 +132,9 @@ def set_columns_for_table(table, data=None, where=None):
     if where:
         query += " WHERE " + where
 
+    logfile = open(logdir + '/' + set_columns_for_table.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(query, values + where_args, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(-1) + "," + str(q_end) + "," + str(commit_end) + "\n")
