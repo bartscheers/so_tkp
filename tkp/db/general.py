@@ -10,6 +10,7 @@ with exceptions of monitoringlist and transients.
 
 import math
 import logging
+import time
 
 import tkp.db
 from tkp.utility.coordinates import eq_to_cart
@@ -17,6 +18,7 @@ from tkp.utility.coordinates import alpha_inflate
 
 
 logger = logging.getLogger(__name__)
+logdir = '/export/scratch2/bscheers/lofar/myforks/scripts/db_scale'
 
 
 lightcurve_query = """
@@ -83,7 +85,12 @@ DELETE
             'assoc_theta': assoc_theta,
             'deRuiter_r': deRuiter_r
     }
+    logfile = open(logdir + '/' + filter_userdetections_extracted_sources.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(filter_ud_xtrsrcs_query, args, True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     if cursor.rowcount == 0:
         logger.info("No user-entry sources removed from extractedsource for "
                     "image %s" % (image_id,))
@@ -97,7 +104,12 @@ def update_dataset_process_end_ts(dataset_id):
 
     """
     args = {'dataset_id': dataset_id}
+    logfile = open(logdir + '/' + update_dataset_process_end_ts.__name__ + '.log', 'a')
+    start = time.time()
     tkp.db.execute(update_dataset_process_end_ts_query, args, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(dataset_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     return dataset_id
 
 
@@ -160,8 +172,13 @@ def insert_image(dataset, freq_eff, freq_bw, taustart_ts, tau_time,
                  'url': url,
                  'centre_ra': centre_ra, 'centre_decl': centre_decl,
                  'xtr_radius': xtr_radius}
+    logfile = open(logdir + '/' + insert_image.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, arguments, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
     image_id = cursor.fetchone()[0]
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     return image_id
 
 
@@ -278,7 +295,12 @@ INSERT INTO extractedsource
   )
 VALUES
 """ + ",".join(values)
+    logfile = open(logdir + '/' + insert_extracted_sources.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     insert_num = cursor.rowcount
     if insert_num == 0:
             logger.info("No forced-fit sources added to extractedsource for "

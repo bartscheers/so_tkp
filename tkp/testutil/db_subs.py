@@ -138,20 +138,20 @@ def deRuiter_radius(src1, src2):
 
     # The errors are the square root of the quadratic sum of 
     # the systematic and fiited errors.
-    src1_ra_err = math.sqrt(src1.ra_sys_err**2 + (src1.ra_fit_err*3600.)**2)
-    src1_dec_err = math.sqrt(src1.dec_sys_err**2 + (src1.dec_fit_err*3600.)**2)
-    src2_ra_err = math.sqrt(src2.ra_sys_err**2 + (src2.ra_fit_err*3600.)**2)
-    src2_dec_err = math.sqrt(src2.dec_sys_err**2 + (src2.dec_fit_err*3600.)**2)
+    src1_uncertainty_ew = math.sqrt(src1.ra_sys_err**2 + src1.error_radius**2) / 3600.
+    src1_uncertainty_ns = math.sqrt(src1.dec_sys_err**2 + src1.error_radius**2) / 3600.
+    src2_uncertainty_ew = math.sqrt(src2.ra_sys_err**2 + src2.error_radius**2) / 3600.
+    src2_uncertainty_ns = math.sqrt(src2.dec_sys_err**2 + src2.error_radius**2) / 3600.
     
     ra_nom = ((src1.ra - src2.ra) * math.cos(math.radians(0.5 * (src1.dec + src2.dec))))**2
-    ra_denom = src1_ra_err**2 + src2_ra_err**2
+    ra_denom = src1_uncertainty_ew**2 + src2_uncertainty_ew**2
     ra_fac = ra_nom / ra_denom
     
     dec_nom = (src1.dec - src2.dec)**2
-    dec_denom = src1_dec_err**2 + src2_dec_err**2
+    dec_denom = src1_uncertainty_ns**2 + src2_uncertainty_ns**2
     dec_fac = dec_nom / dec_denom
     
-    dr = 3600 * math.sqrt(ra_fac + dec_fac)
+    dr = math.sqrt(ra_fac + dec_fac)
     return dr
 
 #Used to record the significance levels on a lightcurve.
