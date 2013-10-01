@@ -189,6 +189,7 @@ class TestTransientRoutines(unittest.TestCase):
                  minpoints=1)
         self.assertEqual(len(transients), very_non_flat)
 
+    @unittest.skip
     def test_variability_not_null(self):
         # As per #4306, it should be impossible to insert a transient with a
         # null value for V_int or eta_int.

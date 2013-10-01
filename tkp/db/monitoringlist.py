@@ -6,12 +6,14 @@ of transient candidates, mostly involving the monitoringlist.
 """
 import logging
 from collections import namedtuple
+import time
 
 from tkp.db import general
 import tkp.db
 
 
 logger = logging.getLogger(__name__)
+logdir = '/export/scratch2/bscheers/lofar/release1/performance/feb2013-sp6/napels/test/run_0/log'
 
 
 def get_nulldetections(image_id, deRuiter_r):
@@ -97,7 +99,12 @@ SELECT t0.id
  WHERE t1.id IS NULL
 """    
     qry_params = {'image_id':image_id, 'drrad': deRuiter_r}
+    logfile = open(logdir + '/' + get_nulldetections.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, qry_params)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     results = zip(*cursor.fetchall())
     if len(results) != 0:
         return zip(list(results[1]), list(results[2]))
@@ -111,11 +118,11 @@ def adjust_transients_in_monitoringlist(image_id, transients):
     updating them
 
     """
-    _update_known_transients_in_monitoringlist(transients)
+    _update_known_transients_in_monitoringlist(image_id, transients)
     _insert_new_transients_in_monitoringlist(image_id)
 
 
-def _update_known_transients_in_monitoringlist(transients):
+def _update_known_transients_in_monitoringlist(image_id, transients):
     """Update transients in monitoringlist"""
     query = """\
     UPDATE monitoringlist
@@ -124,10 +131,18 @@ def _update_known_transients_in_monitoringlist(transients):
       WHERE runcat = %(runcat)s
     """
     upd = 0
+    logfile = open(logdir + '/' + _update_known_transients_in_monitoringlist.__name__ + '.log', 'a')
+    start = time.time()
+    
     for entry in transients:
         cursor = tkp.db.execute(query, entry, commit=False)
         upd += cursor.rowcount
     tkp.db.commit()
+    
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
+    
     if upd > 0:
         logger.info("Updated %s known transients in monitoringlist" % (upd,))
 
@@ -165,7 +180,12 @@ INSERT INTO monitoringlist
                              AND i0.id = %(image_id)s
                          )
 """
+    logfile = open(logdir + '/' + _insert_new_transients_in_monitoringlist.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, {'image_id': image_id}, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     ins = cursor.rowcount
     if ins == 0:
         logger.info("No new transients inserted in monitoringlist")
@@ -231,7 +251,12 @@ INSERT INTO monitoringlist
                         AND r0.id = m0.runcat
                     )
 """
+    logfile = open(logdir + '/' + add_nulldetections.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, {'image_id': image_id}, commit=True)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     ins = cursor.rowcount
     if ins > 0:
         logger.info("Added %s forced fit null detections to monlist" % (ins,))

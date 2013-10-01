@@ -6,6 +6,7 @@ mostly involving the 'transient' table.
 
 """
 import logging
+import time
 from scipy.stats import chisqprob
 
 import tkp.db
@@ -14,9 +15,10 @@ from tkp.utility import substitute_nan
 
 
 logger = logging.getLogger(__name__)
+logdir = '/export/scratch2/bscheers/lofar/release1/performance/feb2013-sp6/napels/test/run_0/log'
 
 
-def _update_known_transients(transients):
+def _update_known_transients(image_id, transients):
     """Update the known transient sources in the database.
 
     Used when new measurements were made, changing variability indices.
@@ -36,16 +38,25 @@ UPDATE transient
    AND band = %(band)s
     """
     upd = 0
+    
+    logfile = open(logdir + '/' + _update_known_transients.__name__ + '.log', 'a')
+    start = time.time()
+    
     for tr in transients:
         cursor = tkp.db.execute(query, tr, commit=False)
         upd += cursor.rowcount
     tkp.db.commit()
+    
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + str(len(transients)) + "\n")
+    
     if upd > 0:
         logger.info("Updated %s known transients" % (upd,))
     return upd
 
 
-def _insert_transients(transients):
+def _insert_transients(image_id, transients):
     """Insert newly identified transient sources into the transients table.
 
     *Args*:
@@ -73,10 +84,19 @@ VALUES
   )
     """
     ins = 0
+    
+    logfile = open(logdir + '/' + _insert_transients.__name__ + '.log', 'a')
+    start = time.time()
+
     for entry in transients:
         cursor = tkp.db.execute(query, entry, commit=False)
         ins += cursor.rowcount
     tkp.db.commit()
+    
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + str(len(transients)) + "\n")
+    
     logger.info("Inserted %s new transients in transients table" % (ins,))
 
 
@@ -176,7 +196,12 @@ ORDER BY t1.runcat
         ,t1.band
 """
     qry_params = {'imgid':image_id}
+    logfile = open(logdir + '/' + _select_updated_variability_indices.__name__ + '.log', 'a')
+    start = time.time()
     cursor = tkp.db.execute(query, qry_params)
+    q_end = time.time() - start
+    commit_end = time.time() - start
+    logfile.write(str(image_id) + "," + str(q_end) + "," + str(commit_end) + "\n")
     results = get_db_rows_as_dicts(cursor)
     return results
 
@@ -236,7 +261,7 @@ def multi_epoch_transient_search(image_id,
 
     old_transients = [entry for entry in updated_variability_indices
                             if not entry['new_transient']]
-    _update_known_transients(old_transients)
+    _update_known_transients(image_id, old_transients)
 
     filtered_transients = []
     for candidate in updated_variability_indices:
@@ -247,5 +272,5 @@ def multi_epoch_transient_search(image_id,
                         filtered_transients.append(candidate)
 
     new_transients = [entry for entry in filtered_transients if entry['new_transient']]
-    _insert_transients(new_transients)
+    _insert_transients(image_id, new_transients)
     return filtered_transients

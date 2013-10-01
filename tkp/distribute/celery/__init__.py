@@ -25,7 +25,7 @@ from tkp.conf import parse_to_dict
 
 
 logger = logging.getLogger(__name__)
-
+logdir = '/export/scratch2/bscheers/lofar/release1/performance/feb2013-sp6/napels/test/run_0/log'
 
 def runner(func, iterable, arguments, local=False):
     """
@@ -207,11 +207,21 @@ def run(job_name, local=False):
             dbgen.insert_extracted_sources(image.id, ff_nd, 'ff_nd')
 
             logger.info("performing source association")
+            logfile = open(logdir + '/source_association.log', 'a')
+            start = time.time()
             dbass.associate_extracted_sources(image.id,
                                               deRuiter_r=deRuiter_radius)
+            q_end = time.time() - start
+            commit_end = time.time() - start
+            logfile.write(str(image.id) + "," + str(q_end) + "," + str(commit_end) + "\n")
             dbmon.add_nulldetections(image.id)
+            logfile = open(logdir + '/transient_search.log', 'a')
+            start = time.time()
             transients = steps.transient_search.search_transients(image.id,
                                                                   tr_parset)
             dbmon.adjust_transients_in_monitoringlist(image.id, transients)
+            q_end = time.time() - start
+            commit_end = time.time() - start
+            logfile.write(str(image.id) + "," + str(q_end) + "," + str(commit_end) + str(len(transients)) + "\n")
 
         dbgen.update_dataset_process_end_ts(dataset_id)
