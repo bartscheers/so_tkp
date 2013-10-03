@@ -7,7 +7,7 @@ import tkp.db
 import time
 
 logger = logging.getLogger(__name__)
-logdir = '/export/scratch2/bscheers/lofar/release1/performance/2013-sp3/napels/10x10000/log'
+logdir = '/export/scratch2/bscheers/lofar/release1/performance/2013-sp4/napels/10x100000/log'
 
 def associate_extracted_sources(image_id, deRuiter_r):
     """Associate extracted sources with sources detected in the running
